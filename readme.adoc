@@ -1,91 +1,97 @@
-= AsciiDoc Article Title
-Firstname Lastname <author@asciidoctor.org>
-3.0, July 29, 2022: AsciiDoc article template
-:toc:
-:icons: font
-:url-quickref: https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
+= SAML 2.0 Login & Logout Federation Sample using SAML Extension URLs
 
-Content entered directly below the header but before the first section heading is called the preamble.
+This guide provides instructions on setting up the new Spring Security SAML 2.0 support using the endpoint URLs from the EOLd Spring Security SAML Extension.
 
-== First level heading
+This code uses `RelyingPartyRegistrations#collectionFromMetadata` to demonstrate how to copy this relying party's configuration across several arbitrary asserting party configurations returns from a single endpoint.
 
-This is a paragraph with a *bold* word and an _italicized_ word.
+See the https://github.com/spring-projects/spring-security/wiki/SAML-2.0-Migration-Guide[SAML 2.0 Migration Guide] for more details about the migration.
 
-.Image caption
-image::image-file-name.png[I am the image alt text.]
+== Key Changes
 
-This is another paragraph.footnote:[I am footnote text and will be displayed at the bottom of the article.]
+=== URL Forwarding Filter
 
-=== Second level heading
+Instead of customizing the default Spring Security configuration, a new `Filter` has been created named `SamlExtensionUrlForwardingFilter`.
+This new filter is responsible to forward from the SAML Extension URLs to the new https://docs.spring.io/spring-security/reference/servlet/saml2/login/overview.html[Spring Security SAML 2.0 support URLs].
+Below is a table with the URLs that the Filter listen to (column 1) and forwards to (column 2).
 
-.Unordered list title
-* list item 1
-** nested list item
-*** nested nested list item 1
-*** nested nested list item 2
-* list item 2
 
-This is a paragraph.
-
-.Example block title
-====
-Content in an example block is subject to normal substitutions.
-====
-
-.Sidebar title
-****
-Sidebars contain aside text and are subject to normal substitutions.
-****
-
-==== Third level heading
-
-[#id-for-listing-block]
-.Listing block title
-----
-Content in a listing block is subject to verbatim substitutions.
-Listing block content is commonly used to preserve code input.
-----
-
-===== Fourth level heading
-
-.Table title
 |===
-|Column heading 1 |Column heading 2
+|SAML Extension URLs |Spring Security SAML 2.0 Support URLs |Description
 
-|Column 1, row 1
-|Column 2, row 1
+|`/saml/SSO`
+|`/login/saml2/sso/one`
+|The URL that processes a `<saml2:Response>` from the IdP
 
-|Column 1, row 2
-|Column 2, row 2
+|`/saml/login`
+|`/saml2/authenticate/one`
+|The URL that triggers a SAML 2.0 Login
+
+|`/saml/logout`
+|`/logout/saml2/slo`
+|The URL that trigger an SP's initiated SAML 2.0 Logout
+
+|`/saml/SingleLogout`
+|`/logout/saml2/slo`
+|The URL that processes a `<saml2:LogoutRequest>` from the IdP
+
+|`/saml/metadata`
+|`/saml2/service-provider-metadata/one`
+|The URL that generates the SP metadata
 |===
 
-====== Fifth level heading
+Note that the `SamlExtensionUrlForwardingFilter` has an order of `-102`, this makes it be invoked before the `FilterChainProxy`.
 
-[quote, firstname lastname, movie title]
-____
-I am a block quote or a prose excerpt.
-I am subject to normal substitutions.
-____
+[source,java]
+----
+@Component
+@Order(-102) // To run before FilterChainProxy
+public class SamlExtensionUrlForwardingFilter extends OncePerRequestFilter {
+	// ...
+}
+----
 
-[verse, firstname lastname, poem title and more]
-____
-I am a verse block.
-  Indents and endlines are preserved in verse blocks.
-____
+=== application.yml
 
-== First level heading
+[source%linenums,yml]
+----
+spring:
+  security:
+    filter:
+      dispatcher-types: async, error, request, forward <1>
+    saml2:
+      relyingparty:
+        registration:
+          one:
+            singlelogout:
+              binding: POST
+              url: "{baseUrl}/saml/logout" <2>
+              responseUrl: "{baseUrl}/saml/SingleLogout" <3>
+            acs:
+              location: "{baseUrl}/saml/SSO" <4>
+            assertingparty.metadata-uri: https://login.microsoftonline.com/603e9946-79fd-42bc-bae2-2abda19cb695/saml2
+----
 
-TIP: There are five admonition labels: Tip, Note, Important, Caution and Warning.
+==== `RelyingPartyRegistration` properties
 
-// I am a comment and won't be rendered.
+The `RelyingPartyRegistration` properties should also be customized to match the values that were used by the SAML Extension (see <2>, <3> and <4> above).
 
-. ordered list item
-.. nested ordered list item
-. ordered list item
+== Run the Sample
 
-The text at the end of this sentence is cross referenced to <<_third_level_heading,the third level heading>>
+=== Start up the Sample Boot Application
+```
+ ./gradlew spring-security-saml2-azure-ad-example:bootRun
+```
 
-== First level heading
+=== Open a Browser
 
-This is a link to the https://docs.asciidoctor.org/home/[Asciidoctor documentation].
-This is an attribute reference {url-quickref}[that links this text to the AsciiDoc Syntax Quick Reference].
+http://localhost:8080/
+
+Select the first IdP listed.
+You will be redirect to the Okta SAML 2.0 IDP
+
+=== Type in your credentials
+
+```
+User: testuser2@spring.security.saml
+Password: 12345678
+```

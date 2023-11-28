@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.springsecuritysaml2azureadexamle.java.example;
+package com.example;
 
 import java.io.File;
 import java.io.FileInputStream;
