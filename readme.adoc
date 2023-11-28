@@ -92,6 +92,6 @@ You will be redirect to the Okta SAML 2.0 IDP
 === Type in your credentials
 
 ```
-User: testuser2@spring.security.saml
-Password: 12345678
+User: test@aloisospeltoutlook.onmicrosoft.com
+Password: sCGtNC?EmGW4+T-
 ```
