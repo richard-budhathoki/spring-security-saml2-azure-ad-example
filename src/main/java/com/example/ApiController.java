@@ -20,26 +20,25 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
 import org.springframework.security.saml2.provider.service.authentication.Saml2Authentication;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
-public class IndexController {
+@RestController
+public class ApiController {
 
-	@GetMapping("/")
+
+
+	@GetMapping(value = "/api/secure", produces = "application/json")
 	@PreAuthorize("hasAnyAuthority('APPROLE_DUMMY_SAML_ROLE_VALUE')")
-	public String index(Model model) {
+	public String api() {
 
 		Saml2Authentication auth = (Saml2Authentication) SecurityContextHolder.getContext().getAuthentication();
 		Saml2AuthenticatedPrincipal principal  = (Saml2AuthenticatedPrincipal) auth.getPrincipal();
 
 		String emailAddress = principal.getFirstAttribute("email");
-		//model.addAttribute("emailAddress", emailAddress);
-		model.addAttribute("userAttributes", principal.getAttributes());
-		return "index";
-	}
 
+		return "{\"success\":\"Ok\"}";
+	}
 
 
 }
